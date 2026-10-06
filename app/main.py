@@ -30,17 +30,7 @@ app.include_router(vote.router)
 @app.get("/")
 def main():
     
-    return {"message": "Shallom"}
+    return {"message": "Shallom !!!"}
 
-def find_post(id):
-    for p in my_post:
-        if p['id'] == id:
-            return p
 
-#extract the index of a post 
-def find_index_posts(id):
-    for i, p in enumerate(my_post):
-        if p['id'] == id:
-            return i 
-               
 
