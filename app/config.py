@@ -13,7 +13,8 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int
 
     class Config:
-        env_file = ".env" #tell pydantics to run the env file
+        pass #if we are using docker 
+       # env_file = ".env" #tell pydantics to run the env file
 
 
 settings = Settings()
