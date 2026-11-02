@@ -7,8 +7,6 @@ import time
 from .config import settings 
 
 # the url schema SQLALCHEMY_DATABASE_URL = 'postgresql://<username>:<password>@<ip-address/hostname>:<port_number>/<database_name>
-#SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:belton001@localhost/fastapi'
-
 SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}'
 #create an engine
 engine = create_engine(SQLALCHEMY_DATABASE_URL) #the engine is responsable for the connection
