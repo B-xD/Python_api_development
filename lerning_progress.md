@@ -470,5 +470,276 @@ def get_user(id:int, db:Session = Depends(get_db)):
 
     return user 
 
+====================== Sep 19
+app/routers/auth.py 
+
+from fastapi import APIRouter, Depends, status, HTTPException, Response
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session 
+from .. import database, schemas, models, utils, auth2  
+
+router = APIRouter(
+    tags = ['Authentication']
+    )
+
+@router.post('/login')
+def login(user_credentials: schemas.UserLogin, db: Session = Depends(database.get_db)):
+
+    user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
+
+    if not user:
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail = 'Invalid Credentials')
+
+    if not utils.verify(user_credentials.password, user.password):
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail = 'Invalid Credentials')
+
+    #create token 
+    access_token = auth2.create_access_token(data = {"user_id" : user.id}) #put all information you want to pass
+
+    #return token 
+    return {"access_token": access_token, "token_type": "bearer"} #you configure the token type in the frontend 
+
+#then go to the jwt website pass the token generated to see whats in the token
+
+=================
+auth.py 
+
+from fastapi import APIRouter, Depends, status, HTTPException, Response
+from fastapi.security.oauth2 import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session 
+from .. import database, schemas, models, utils, auth2  
+
+router = APIRouter(
+    tags = ['Authentication']
+    )
+
+@router.post('/login')
+def login(user_credentials: schemas.UserLogin, db: Session = Depends(database.get_db)):
+
+    user = db.query(models.User).filter(models.User.email == user_credentials.email).first()
+
+    if not user:
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail = 'Invalid Credentials')
+
+    if not utils.verify(user_credentials.password, user.password):
+
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
+                            detail = 'Invalid Credentials')
+
+    #create token 
+    access_token = auth2.create_access_token(data = {"user_id" : user.id}) #put all information you want to pass
+
+    #return token 
+    return {"access_token": access_token, "token_type": "bearer"} #you configure the token type in the frontend 
+
+#then go to the jwt website pass the token generated to see whats in the toke
+
+================== sept 21 
+
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
+from . import schemas, database, models
+from fastapi import Depends, HTTPException, status 
+from fastapi.security import OAuth2PasswordBearer
+from sqlalchemy.orm import Session
 
 
+#this will be our login endpoint 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl= 'login')
+
+#SECRET_KEY
+#Algorithm 
+#expiration time for our token -- so users dont have to login forever
+
+#run openssl rand -hex 32 to get a string like the one below
+SECRET_KEY = 'e78a9ac5d0ed615a0e736dbc2157078ff9ba7785d871327fb6be84746d271e8f'
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 # 60 min 
+
+def create_access_token(data: dict):
+    to_encode = data.copy()
+
+    #create the expiration field
+    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+
+    to_encode.update({'exp': expire})
+
+    encode_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm= ALGORITHM)
+
+    return encode_jwt
+
+
+def verify_access_token(token: str, credetials_exception):
+
+    try:
+        #decode the jwt 
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+
+        #extruct the ID 
+        id:str = payload.get("user_id")
+
+        if id is None:
+            raise credetials_exception
+        token_data = schemas.TokenData(id = "id") # this will insure that all the data that we pass is actually there 
+    except JWTError: 
+        raise credetials_exception
+
+    return token_data
+
+#verify if the token is valid add the paramenter 
+def get_current_user(token: str= Depends(oauth2_scheme), db: Session = Depends(database.get_db)):
+
+    #define the credential exception: when the credentials are wrong 
+    credential_exception = HTTPException(status_code=status.HTTP_401_UNAUTHORIZED,
+                                         detail = "could not find valid credentials",
+                                           headers={"WWW-Authenticate": "Bearer"}  )
+
+    #token = verify_access_token(token, credential_exception)
+    #user = db.query(models.User).filter(models.User.id == token.id).first()
+
+    return verify_access_token(token, credential_exception)
+=========== if you want to retrieve the logged in user posts only ===========
+@router.get("/", response_model=List[schemas.Post])
+def get_posts(db: Session = Depends(get_db), current_user: int =
+                Depends(oauth2.get_current_user)):
+    #cursor.execute(""" SELECT * FROM posts""")
+    #posts = cursor.fetchall()
+    posts = db.query(models.Post).filter(models.Post.owner_id == current_user.id).all()
+    return  posts
+
+@router.get("/{id}", response_model=schemas.Post) 
+def get_posts(id: int, db: Session = Depends(get_db), current_user: int =
+                Depends(oauth2.get_current_user)):
+
+    #cursor.execute("""SELECT * FROM posts WHERE id = %s""",
+     #              (str(id)))
+    #post = cursor.fetchone()
+    post = db.query(models.Post).filter(models.Post.id == id).first() #dotfirst replaces dotall becasue once we find the post with that unique Id we can then stop
+    if not post:
+        raise HTTPException(status_code =status.HTTP_404_NOT_FOUND,
+                            detail =f"post with id: {id} was not found")
+    if post.owner_id  != current_user.id:
+            raise HTTPException(status_code = status.HTTP_403_FORBIDDEN,
+                                detail = "unauthorized to perform requested action")
+  
+    return post
+
+    # {{URL}}posts?search=Post%20two %20 means space 
+
+    =======
+    from sqlalchemy import create_engine
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import sessionmaker
+import psycopg2
+from psycopg2.extras import RealDictCursor
+import time
+
+# the url schema SQLALCHEMY_DATABASE_URL = 'postgresql://<username>:<password>@<ip-address/hostname>/<database_name>
+SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:belton001@localhost/fastapi'
+#create an engine
+engine = create_engine(SQLALCHEMY_DATABASE_URL) #the engine is responsable for the connection
+
+#the session is used to talk to DB
+SessionLocal = sessionmaker(autocommit=False, autoflush= False, bind = engine)
+
+#define baseclass 
+Base = declarative_base()
+
+#create a dependecy function to start and close sessions 
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+# while True:
+# #we use the try statement whenever there is something that can fail 
+#     try:
+#         conn = psycopg2.connect(host='localhost', database = 'fastapi', user='postgres',
+#                                 password='belton001', cursor_factory=RealDictCursor) #RealDictCursor will give you the column name and a value 
+
+#         cursor = conn.cursor()
+#         print("--DATA BASE CONNECTION WAS SUCCESSFUL")
+#         break 
+#     except Exception as e:
+#         print("--connection to database failed")
+#         print(f"Error: {e}")
+#         time.sleep(2)
+
+================testing the apis ===========
+from fastapi.testclient import TestClient
+from app.main import app 
+from sqlalchemy import create_engine 
+from sqlalchemy.orm import create_session
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy.ext.declarative import declarative_base
+from app import schemas 
+from app.config import settings
+from app.database import get_db, Base 
+import pytest 
+
+# the url schema SQLALCHEMY_DATABASE_URL = 'postgresql://<username>:<password>@<ip-address/hostname>:<port_number>/<database_name>
+#SQLALCHEMY_DATABASE_URL = 'postgresql://postgres:belton001@localhost/fastapi_test'
+
+SQLALCHEMY_DATABASE_URL = f'postgresql://{settings.database_username}:{settings.database_password}@{settings.database_hostname}:{settings.database_port}/{settings.database_name}_test'
+#create an engine
+engine = create_engine(SQLALCHEMY_DATABASE_URL) #the engine is responsable for the connection
+
+#the session is used to talk to DB
+TestingSessionLocal = sessionmaker(autocommit=False, autoflush= False, bind = engine)
+
+#create a dependecy function to start and close sessions 
+def overide_get_db():
+    db = TestingSessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.dependency_overrides[get_db] = overide_get_db
+
+@pytest.fixture
+# def client():
+#     #run the code before running the test (create a table)
+#     Base.metadata.create_all(bind=engine) 
+#     yield TestClient(app)
+#     #run the code after running the test (drop the table)
+#     Base.metadata.drop_all(bind=engine) 
+def client():
+    Base.metadata.drop_all(bind=engine) 
+    Base.metadata.create_all(bind=engine) 
+    yield TestClient(app)
+    
+def test_root(client):
+    res = client.get('/')
+    print(res.json().get('message'))
+    assert res.json().get('message') == 'Shallom Adonai !!!'
+    assert res.status_code == 200
+
+
+def test_create_user(client):
+    res =client.post('/users', json={'email': 'johnrock@mail.com', 'password': 'john123'})
+    
+    new_user = schemas.UserOut(**res.json())
+    assert new_user.email == 'johnrock@mail.com'
+    assert res.status_code == 201
+
+#pytest tests/test_users.py -v
+
+
+---- build tables with alembic 
+def client():
+    # Base.metadata.drop_all(bind=engine) 
+    # Base.metadata.create_all(bind=engine) 
+    command.upgrade('head')
+    yield TestClient(app)
+    commmand.downgrade('base')

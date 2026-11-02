@@ -30,7 +30,7 @@ app.include_router(vote.router)
 @app.get("/")
 def main():
     
-    return {"message": "Shallom Adonai!!!"}
+    return {"message": "Shallom Adonai !!!"}
 
 
 

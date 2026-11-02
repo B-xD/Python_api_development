@@ -14,7 +14,7 @@ class Settings(BaseSettings):
 
     class Config:
         pass #if we are using docker 
-       # env_file = ".env" #tell pydantics to run the env file
+       #env_file = ".env" #tell pydantics to run the env file
 
 
 settings = Settings()
