@@ -55,6 +55,19 @@ def test_user(client):
 
     return new_user 
 
+@pytest.fixture(scope ='function')
+def test_user_2(client):
+    user_data ={'email': 'PaulRock@mail.com', 
+                'password': 'Paul123'}
+    
+    res = client.post('/users', json=user_data)
+    assert res.status_code == 201
+
+    new_user = res.json()
+    new_user['password'] = user_data['password']
+
+    return new_user 
+
 @pytest.fixture 
 def token(test_user):
     return create_access_token({"user_id": test_user['id']})
@@ -69,7 +82,7 @@ def authorize_client(client, token):
     return client 
 
 @pytest.fixture
-def test_posts(test_user, session):
+def test_posts(test_user, session, test_user_2):
     post_data = [
         {'title': 'The day of the Lord', 
          'content': 'The day of the Lord will me a terrible day for some and a glorious day for others', 
@@ -81,7 +94,11 @@ def test_posts(test_user, session):
 
         {'title': 'Faith over fear', 
          'content': 'Even in the darkest valley, trust that the light is already on its way', 
-         'owner_id': test_user['id']}
+         'owner_id': test_user['id']},
+
+         {'title': 'We are gointo to party', 
+           'content': 'Yolo Yolo Yolo', 
+           'owner_id': test_user_2['id']}
 
     ]
 

@@ -76,4 +76,69 @@ def test_unauthorized_user_get_post(client):
 
     assert res.status_code == 401 
 
+def test_unauthorized_user_delete_post(client, test_posts):
+    res = client.delete(
+        f'/posts/{test_posts[0].id}'
+    )
+    assert res.status_code == 401
+
+def test_delete_post_sucess(client, authorize_client, test_posts):
+
+    res =authorize_client.delete(
+        f'/posts/{test_posts[0].id}'
+    )
+
+    assert res.status_code == 204
+
+def test_delete_post_not_exist(authorize_client):
+    res = authorize_client.delete(
+        f'/posts/{10000}'
+    )
+
+    assert res.status_code == 404 
+
+def test_delete_other_user_post(authorize_client, test_posts):
+    res = authorize_client.delete(
+        f'/posts/{test_posts[3].id}'
+    )
+
+    assert res.status_code == 403
+
+
+def test_update_post(authorize_client, test_posts):
+    res = authorize_client.put(
+        f'/posts/{test_posts[0].id}', json={'title': 'updating post', 'content': 'new content'}
+    )
+
+    updated_post = schemas.Post(**res.json())
+
+    assert res.status_code == 200 
+    assert updated_post.title == 'updating post'
+    assert updated_post.content == 'new content'
+
+
+def test_unauthorized_user_update_post(client, test_posts):
+    
+    res = client.put(
+        f'/posts/{test_posts[0].id}', json={'title': 'updating post', 'content': 'new content'}
+    )
+
+    assert res.status_code == 401
+
+def test_update_other_user_post(authorize_client, test_posts):
+    res = authorize_client.put(
+        f'/posts/{test_posts[3].id}', json={'title': 'updating post', 'content': 'new content'}
+    )
+
+    assert res.status_code == 403 
+
+
+def test_update_non_existing_post(authorize_client):
+    res = authorize_client.put(
+        f'/posts/{1000000}', json={'title': 'updating post', 'content': 'new content'}
+    )
+
+    assert res.status_code == 404
+
+
 #pytest tests/test_posts.py -v -s

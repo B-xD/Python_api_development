@@ -743,3 +743,13 @@ def client():
     command.upgrade('head')
     yield TestClient(app)
     commmand.downgrade('base')
+
+==== my test that worked 
+def test_create_post(authorize_client, test_posts, title, content, published):
+    res = authorize_client.post('/posts/', json={'title': 'The day of the Lord', 'content': 'The day of the Lord will me a terrible day for some and a glorious day for others', 'published': 'True'})
+
+    #res = client.post('/posts/', json={'tittle': 'The day of the Lord', 'content': 'The day of the Lord will me a terrible day for some and a glorious day for others', 'published': 'True'})
+
+    #new_post = schemas.PostOut(**res.json()) 
+    print(res.json())
+    assert res.status_code == 201 
