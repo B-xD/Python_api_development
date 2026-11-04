@@ -753,3 +753,16 @@ def test_create_post(authorize_client, test_posts, title, content, published):
     #new_post = schemas.PostOut(**res.json()) 
     print(res.json())
     assert res.status_code == 201 
+
+=============== CI/CD
+
+name: Build and Deploy code 
+
+on: 
+  push: 
+    branches: ["main"]
+       - "main"
+    
+  pill_request:
+     branches:
+      - "main"

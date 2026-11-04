@@ -30,7 +30,7 @@ mdurl
 packaging
 passlib
 pluggy
-psycopg[binary]>=3.2.0
+psycopg[binary]
 pyasn1
 pycparser
 pydantic
