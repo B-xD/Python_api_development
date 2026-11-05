@@ -19,9 +19,11 @@ fastar
 h11
 httpcore
 httptools
-httpx
+httpx2
 idna
+psycopg2-binary
 iniconfig
+
 Jinja2
 Mako
 markdown-it-py
