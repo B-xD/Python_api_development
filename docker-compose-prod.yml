@@ -1,6 +1,6 @@
 services: 
   api: 
-      image: beltonxd/fastapi
+      image: beltonxd/fast_api:latest
       depends_on:
           - postgres
       ports: 

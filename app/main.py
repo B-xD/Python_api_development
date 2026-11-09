@@ -30,7 +30,7 @@ app.include_router(vote.router)
 @app.get("/")
 def main():
     
-    return {"message": "Shallom! we have sucessfully deployed the app from CI/CD pipeline"}
+    return {"message": "Shallom! Deployment to HEROKU and UBUNTU server!!!"}
 
 
 

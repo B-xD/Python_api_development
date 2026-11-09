@@ -766,3 +766,180 @@ on:
   pill_request:
      branches:
       - "main"
+==================
+name: Build and Deploy code
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    environment:
+      name: Testing
+    env:
+      DATABASE_HOSTNAME: ${{ secrets.DATABASE_HOSTNAME }}
+      DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      ALGORITHM: ${{ secrets.ALGORITHM }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DATABASE_NAME }}_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull git repo
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests with pytest
+        run: |
+          pip install pytest
+          pytest -v
+      
+      # - name: Login in to Docker Hub
+      #   uses: docker/login-action@v4
+      #   with:
+      #     username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      #     password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN}}
+      
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v4
+      
+      # - name: Build and push Docker image
+      #   id: docker_build
+      #   uses: docker/build-push-action@v7
+      #   with:
+      #     context: ./
+      #     builder: ${{ steps.buildx.outputs.name }}
+      #     push: True 
+      #     tags: ${{ secrets.DOCKER_HUB_USERNAME}}/fast_api:latest
+
+      # - name: Image digest
+      #   run: echo ${{ steps.docker_build.outputs.digest }}
+
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build] 
+
+    steps:
+      - name: pull our github repo  
+        run: 
+        #install CLI 
+        #heroku login 
+        #add git remote for heroku 
+        #git push heroku main 
+
+#===================== Git hub actions forkflow 
+name: Build and Deploy code
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    environment:
+      name: Testing
+    env:
+      DATABASE_HOSTNAME: ${{ secrets.DATABASE_HOSTNAME }}
+      DATABASE_PORT: ${{ secrets.DATABASE_PORT }}
+      DATABASE_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+      DATABASE_NAME: ${{ secrets.DATABASE_NAME }}
+      DATABASE_USERNAME: ${{ secrets.DATABASE_USERNAME }}
+      SECRET_KEY: ${{ secrets.SECRET_KEY }}
+      ALGORITHM: ${{ secrets.ALGORITHM }}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${{ secrets.ACCESS_TOKEN_EXPIRE_MINUTES }}
+
+    services:
+      postgres:
+        image: postgres
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.DATABASE_PASSWORD }}
+          POSTGRES_DB: ${{ secrets.DATABASE_NAME }}_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull git repo
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Update pip
+        run: python -m pip install --upgrade pip
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+      - name: Run tests with pytest
+        run: |
+          pip install pytest
+          pytest -v
+      
+      # - name: Login in to Docker Hub
+      #   uses: docker/login-action@v4
+      #   with:
+      #     username: ${{ secrets.DOCKER_HUB_USERNAME }}
+      #     password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN}}
+      
+      # - name: Set up Docker Buildx
+      #   uses: docker/setup-buildx-action@v4
+      
+      # - name: Build and push Docker image
+      #   id: docker_build
+      #   uses: docker/build-push-action@v7
+      #   with:
+      #     context: ./
+      #     builder: ${{ steps.buildx.outputs.name }}
+      #     push: True 
+      #     tags: ${{ secrets.DOCKER_HUB_USERNAME}}/fast_api:latest
+
+      # - name: Image digest
+      #   run: echo ${{ steps.docker_build.outputs.digest }}
+
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [build]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    environment: production
+
+    steps:
+      - name: Pull git repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Heroku CLI
+        run: curl https://cli-assets.heroku.com/install.sh | sh
+
+      - name: Deploy to Heroku
+        uses: akhileshns/heroku-deploy@v3.15.15
+        with:
+          heroku_api_key: ${{ secrets.HEROKU_API_KEY }}
+          heroku_app_name: ${{ secrets.HEROKU_APP_NAME }}
+          heroku_email: ${{ secrets.HEROKU_EMAIL }}
